@@ -69,7 +69,7 @@ static inline void ether_addr_copy(u8 *dst, const u8 *src)
     a[2] = b[2];
 }
 
-void wlan_br_forward(int len, unsigned char *buf, unsigned char *dest_mac, struct sockaddr_in *curr_addr)
+int wlan_br_forward(int len, unsigned char *buf, unsigned char *dest_mac, struct sockaddr_in *curr_addr)
 {
     wlan_fdb_entry_t *entry = wlan_br_find(dest_mac);
     if (entry)
@@ -77,16 +77,18 @@ void wlan_br_forward(int len, unsigned char *buf, unsigned char *dest_mac, struc
         if (entry->peer_addr.sin_addr.s_addr == curr_addr->sin_addr.s_addr &&
             entry->peer_addr.sin_port == curr_addr->sin_port)
         {
-            return;
+            return 0;
         }
         LOG_ETHER_ADDR(&entry->peer_addr, entry->key_remote_mac, "send udp to data len: %d", len);
         int send_len = send_data_to_udp_client(len, buf, &entry->peer_addr);
         if (send_len != len)
         {
             LOG_ERR("send_data_to_udp_client failed, send_len: %d, len: %d", send_len, len);
-            return;
+            return -2;
         }
+        return send_len;
     }
+    return -1;
 }
 int wlan_br_forward_to_array(int len, unsigned char *buf, unsigned char *dest_mac, struct sockaddr_in *curr_addr,
                              unsigned int *to_data_len, unsigned char **to_buf, struct sockaddr_in *to_peer_addr)
@@ -105,7 +107,7 @@ int wlan_br_forward_to_array(int len, unsigned char *buf, unsigned char *dest_ma
         memcpy(to_peer_addr, &entry->peer_addr, sizeof(struct sockaddr_in));
         return 1;
     }
-    return 0;
+    return -1;
 }
 
 void wlan_br_flood(int len, unsigned char *buf, struct sockaddr_in *curr_addr)
@@ -209,7 +211,11 @@ void wlan_br_handle(int len, unsigned char *buf, struct sockaddr_in *peer_addr)
     }
     else
     {
-        wlan_br_forward(len, buf, ether->h_dest, peer_addr);
+        int ret = wlan_br_forward(len, buf, ether->h_dest, peer_addr);
+        if (-1 == ret)
+        {
+            wlan_br_flood(len, buf, peer_addr);
+        }
     }
 }
 
@@ -234,14 +240,20 @@ void wlan_br_handle_burst(int recv_count, unsigned char *buf[], unsigned int dat
         }
         else
         {
-            if (1 == wlan_br_forward_to_array(data_len[i], buf[i], ether->h_dest, &peer_addr[i],
-                                              &to_data_len[j], &to_buf[j], &to_peer_addr[j]))
+            int ret = wlan_br_forward_to_array(data_len[i], buf[i], ether->h_dest, &peer_addr[i],
+                                               &to_data_len[j], &to_buf[j], &to_peer_addr[j]);
+            if (1 == ret)
             {
                 j++;
             }
+            else if (-1 == ret)
+            {
+                wlan_br_flood(data_len[i], buf[i], &peer_addr[i]);
+            }
         }
     }
-    if (j > 0) {
+    if (j > 0)
+    {
         send_data_to_udp_client_burst(to_buf, to_data_len, to_peer_addr, j);
     }
 }
