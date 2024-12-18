@@ -2,18 +2,20 @@
 BIN=wlan_br_server
 
 SRC=$(wildcard *.c)
-INC=.
-LIB_DIR=.
+INC=-I.
+INC += -I../libcli
+LIB_DIR=-L.
+LIB_DIR += -L../libcli
 
 #LIB=-lsctp
-LIB=
+LIB=-pthread -lcli
 OBJ=$(patsubst %.c,%.o,$(SRC))
 CFLAGS=-O0 -g
 %.o: %.c
-	gcc -Wall -o $@ -c $^ -I$(INC) $(CFLAGS)
+	gcc -Wall -o $@ -c $^ $(INC) $(CFLAGS)
 
 $(BIN):$(OBJ)
-	gcc -o $@ $^ -L$(LIB_DIR) $(LIB)  $(CFLAGS) 
+	gcc -o $@ $^ $(LIB_DIR) $(LIB)  $(CFLAGS) 
 
 clean:
 	rm -rf $(BIN) $(OBJ)

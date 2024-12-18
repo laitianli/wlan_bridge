@@ -1,6 +1,7 @@
 #include "common.h"
 #include "wlan_br_forward.h"
 #include "udp.h"
+#include "cli.h"
 static int epfd = -1;
 static int udp_sock_fd = -1;
 static int rx_task_is_running = 1;
@@ -11,7 +12,7 @@ static void usr1_handler(int signo)
     rx_task_is_running = 0;
 }
 
-static void server_runing(void)
+void server_runing(void)
 {
     int nfds = -1;
     int i = 0;
@@ -124,11 +125,13 @@ static void server_runing_burst(void)
 
 int main(int argv, char **argc)
 {
+    signal(SIGCHLD, SIG_IGN);
     signal(SIGUSR1, usr1_handler);
+    cli_main();
     udp_sock_fd = create_udp_server(UDP_PORT);
     if (udp_sock_fd == -1)
     {
-        LOG_ERR("create_udp_client failed!");
+        LOG_ERR("create_udp_server failed!");
         return -1;
     }
     int flags = fcntl(udp_sock_fd, F_GETFL);
