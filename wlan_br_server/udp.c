@@ -22,6 +22,19 @@ int create_udp_server(unsigned short port)
         LOG_ERR("bind() error, errno: %d", errno);
         return -1;
     }
+    int nRecvBuf = 1024 * 1024;
+    int ret = setsockopt(serv_sock, SOL_SOCKET, SO_RCVBUF, (const char *)&nRecvBuf, sizeof(int));
+    if (ret)
+    {
+        LOG_ERR("ret: %d, errno: %d", ret, errno);
+    }
+
+    int nSendBuf = 1024 * 1024;
+    ret = setsockopt(serv_sock, SOL_SOCKET, SO_SNDBUF, (const char *)&nSendBuf, sizeof(int));
+    if (ret)
+    {
+        LOG_ERR("ret: %d, errno: %d", ret, errno);
+    }
     return serv_sock;
 }
 
@@ -41,10 +54,12 @@ int send_data_to_udp_client(int len, unsigned char *buf, struct sockaddr_in *pee
 int send_data_to_udp_client_burst(unsigned char *buf[], unsigned int data_len[], struct sockaddr_in peer_addr[], int msg_num)
 {
     struct mmsghdr mmsg[msg_num];
+    struct mmsghdr resend_mmsg[msg_num];
     struct iovec iov[msg_num];
     memset(mmsg, 0, sizeof(mmsg));
     memset(iov, 0, sizeof(iov));
     int i = 0;
+
     for (i = 0; i < msg_num; i++)
     {
         iov[i].iov_base = buf[i];
@@ -57,10 +72,34 @@ int send_data_to_udp_client_burst(unsigned char *buf[], unsigned int data_len[],
     int retval = sendmmsg(serv_sock, mmsg, msg_num, 0);
     if (retval != msg_num)
     {
-        LOG_ERR("msg_num: %d, sendcount: %d, errno: %d", msg_num, retval, errno);
+        int resend_msg_num = 0;
+        LOG_INFO("msg_num: %d, sendcount: %d, errno: %d", msg_num, retval, errno);
+        if (errno == EAGAIN)
+        {
+            for (i = 0; i < msg_num; i++)
+            {
+                LOG_INFO("mmsg[%d].msg_len:%d, mmsg[%d].msg_hdr.msg_iov->iov_len:%lu", i, mmsg[i].msg_len, i, mmsg[i].msg_hdr.msg_iov->iov_len);
+                if (mmsg[i].msg_len != mmsg[i].msg_hdr.msg_iov->iov_len)
+                    memcpy(&resend_mmsg[resend_msg_num++], &mmsg[i], sizeof(struct mmsghdr));
+            }
+            if (resend_msg_num > 0)
+            {
+                LOG_INFO("so wait 20us to resend [%d] packet.", resend_msg_num);
+                usleep(20);
+                retval = sendmmsg(serv_sock, resend_mmsg, resend_msg_num, 0);
+                if (retval == resend_msg_num)
+                    goto END;
+                else
+                {
+                    LOG_ERR("msg_num: %d, sendcount: %d, errno: %d", msg_num, retval, errno);
+                    return -1;
+                }
+            }
+        }
         return -1;
     }
-    //LOG_INFO("sendmmsg msg num: %d", msg_num);
+END:
+    // LOG_INFO("sendmmsg msg num: %d", msg_num);
     return retval;
 }
 
