@@ -3,6 +3,8 @@
 #include "udp.h"
 #include "wlan_br_forward.h"
 #include "wlan_fdb.h"
+#include "statistics.h"
+
 typedef struct _peer_addr_info_
 {
     struct sockaddr_in addr;
@@ -96,6 +98,7 @@ int wlan_br_forward_to_array(int len, unsigned char *buf, unsigned char *dest_ma
     wlan_fdb_entry_t *entry = wlan_br_find(dest_mac);
     if (entry)
     {
+        wlan_ip_static_update_rx(curr_addr->sin_addr.s_addr, 1, len);
         if (entry->peer_addr.sin_addr.s_addr == curr_addr->sin_addr.s_addr &&
             entry->peer_addr.sin_port == curr_addr->sin_port)
         {
@@ -105,13 +108,30 @@ int wlan_br_forward_to_array(int len, unsigned char *buf, unsigned char *dest_ma
         *to_data_len = len;
         *to_buf = buf;
         memcpy(to_peer_addr, &entry->peer_addr, sizeof(struct sockaddr_in));
+        wlan_ip_static_update_tx(to_peer_addr->sin_addr.s_addr, 1, len);
         return 1;
     }
     return -1;
 }
 
+void wlan_br_dump_fdb(void *handle, dump_fn fn)
+{
+    peer_addr_info_t *pa = NULL;
+    wlan_list_entry_t *entry, *tmp, *tmp2;
+    char eth_addr[20];
+    char str_buf[128] = {0};
+    CDL_FOREACH_SAFE(l_head, entry, tmp, tmp2)
+    {
+        pa = entry->peer_addr;
+        snprintf(str_buf, sizeof(str_buf) - 1, "%15s:%-5d -> %s", inet_ntoa((struct in_addr)pa->addr.sin_addr), ntohs(pa->addr.sin_port),
+           ether_addr_to_str(entry->key_remote_mac, eth_addr, sizeof(eth_addr)));
+        fn(handle, str_buf);
+    }
+}
+
 void wlan_br_flood(int len, unsigned char *buf, struct sockaddr_in *curr_addr)
 {
+    wlan_ip_static_update_rx(curr_addr->sin_addr.s_addr, 1, len);
     peer_addr_info_t *pa = NULL;
     wlan_list_entry_t *entry, *tmp, *tmp2;
     CDL_FOREACH_SAFE(l_head, entry, tmp, tmp2)
@@ -138,6 +158,7 @@ void wlan_br_flood(int len, unsigned char *buf, struct sockaddr_in *curr_addr)
             LOG_ERR("send_data_to_udp_client failed, send_len: %d, len: %d", send_len, len);
             continue;
         }
+        wlan_ip_static_update_tx(pa->addr.sin_addr.s_addr, 1, len);
     }
     /*clear flood flag */
     CDL_FOREACH_SAFE(l_head, entry, tmp, tmp2)

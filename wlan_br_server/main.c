@@ -5,8 +5,9 @@
 static int epfd = -1;
 static int udp_sock_fd = -1;
 static int rx_task_is_running = 1;
+epoll_stat_info_t epoll_stat_info = {0};
 #define UDP_PORT 29870
-
+int log_level = 0;
 static void usr1_handler(int signo)
 {
     rx_task_is_running = 0;
@@ -83,6 +84,17 @@ static void server_runing_burst(void)
     while (rx_task_is_running)
     {
         nfds = epoll_wait(epfd, evs, ev_size, 1000);
+        if (nfds == 0) {
+            epoll_stat_info.epoll_timeout ++;
+            continue;
+        }
+        else if (unlikely(nfds < 0)) {
+            epoll_stat_info.epoll_error ++;
+            continue;
+        }
+        else {
+            epoll_stat_info.epool_recv += nfds;
+        }
         for (i = 0; i < nfds; i++)
         {
             if (evs[i].events & EPOLLIN)
@@ -123,10 +135,16 @@ static void server_runing_burst(void)
     }
 }
 
+void init_fun(void)
+{
+    memset(&epoll_stat_info, 0, sizeof(epoll_stat_info));
+}
+
 int main(int argv, char **argc)
 {
     signal(SIGCHLD, SIG_IGN);
     signal(SIGUSR1, usr1_handler);
+    init_fun();
     cli_main();
     udp_sock_fd = create_udp_server(UDP_PORT);
     if (udp_sock_fd == -1)

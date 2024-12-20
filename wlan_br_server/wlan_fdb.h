@@ -14,4 +14,5 @@ typedef struct _wlan_fdb_entry_
 
 int wlan_fdb_update(struct sockaddr_in *peer_addr, unsigned char *remote_mac);
 wlan_fdb_entry_t *wlan_br_find(unsigned char *remote_mac);
+
 #endif
