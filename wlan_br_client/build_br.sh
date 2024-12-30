@@ -1,12 +1,13 @@
 #!/bin/bash
 ACTION=$1
-
+export LD_LIBRARY_PATH=$(pwd)/../src_lib/libcli/
 BR_NAME=wlan_br
 VETH_NAME=veth
 VETH_NAME_0="${VETH_NAME}0"
 VETH_NAME_1="${VETH_NAME}1"
 TAP_NAME=ttap0
 VETH_IP=6.6.6.137/24
+SERVER_IP=172.16.123.137
 function build_veth()
 {
 	ip link add ${VETH_NAME_0} type veth peer name ${VETH_NAME_1}
@@ -24,13 +25,13 @@ function del_veth()
 	ip link del ${VETH_NAME_0} type veth peer name ${VETH_NAME_1}
 }
 
-TUNTAP_APP_NAME=t_tuntap
-TUNTAP_APP_PATH=/home/haizhi/wlan_br/tuntap/${TUNTAP_APP_NAME}
+TUNTAP_APP_NAME=wlan_br_client
+TUNTAP_APP_PATH=$(pwd)/bin/${TUNTAP_APP_NAME}
 
 function build_tuntap()
 {
 	if [ -z "$(pidof ${TUNTAP_APP_NAME})" ];then
-		${TUNTAP_APP_PATH} &
+		${TUNTAP_APP_PATH} -s ${SERVER_IP}&
 		echo "[shell note] create ${TUNTAP_APP_NAME} success!"
 	fi
 }
@@ -63,6 +64,7 @@ function del_br()
 	ip link set ${VETH_NAME_1} nomaster
 	ip link set ${BR_NAME} down
 	ip link set ${TAP_NAME} down
+	ip link del dev ${BR_NAME}
 
 }
 

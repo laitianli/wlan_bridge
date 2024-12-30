@@ -12,23 +12,40 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <linux/if_ether.h>
+#include <getopt.h>
+
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
+typedef unsigned char bool;
+typedef void (*dump_fn)(void *arg, const char* str);
+#define unlikely(x) __builtin_expect((x), 0)
+
+extern int log_level;
+enum log_level
+{
+    enLOG_LEVEL_INFO = 1,
+    enLOG_LEVEL_DEBUG = 2,
+};
+
 
 #define LOG_ERR(format, ...) printf("[Error][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 #define LOG_DBG(format, ...) printf("[Debug][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 #define LOG_INFO(format, ...) printf("[INFO][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
-#if 1
 #define LOG_ETHER_ADDR(ether, format, ...)                                                              \
     do                                                                                                  \
     {                                                                                                   \
-        char src_eth_addr[20], dest_eth_addr[20];                                                       \
-        printf("[INFO][%s:%d][src mac:%s, dst mac: %s, proto: 0x%04x]" format "\n", __func__, __LINE__, \
-               ether_addr_to_str((ether)->h_source, src_eth_addr, sizeof(src_eth_addr)),                \
-               ether_addr_to_str((ether)->h_dest, dest_eth_addr, sizeof(dest_eth_addr)),                \
-               ntohs((ether)->h_proto), ##__VA_ARGS__);                                                 \
+        if (log_level >= enLOG_LEVEL_DEBUG)                                                             \
+        {                                                                                               \
+            char src_eth_addr[20], dest_eth_addr[20];                                                       \
+            printf("[INFO][%s:%d][src mac:%s, dst mac: %s, proto: 0x%04x]" format "\n", __func__, __LINE__, \
+                ether_addr_to_str((ether)->h_source, src_eth_addr, sizeof(src_eth_addr)),                \
+                ether_addr_to_str((ether)->h_dest, dest_eth_addr, sizeof(dest_eth_addr)),                \
+                ntohs((ether)->h_proto), ##__VA_ARGS__);                                                 \
+        }                                                                                               \
     } while (0)
-#else
-#define LOG_ETHER_ADDR(ether, format, ...)
-#endif
+
 typedef int (*recv_tuntap_fn)(int len, unsigned char *buf);
 
 int create_tuntap(const char *nic_name);
@@ -53,4 +70,10 @@ static inline char *ether_addr_to_str(unsigned char addr[ETH_ALEN], char *buf, i
     return buf;
 }
 
+typedef struct _epoll_stat_info_
+{
+    u64 epoll_timeout;
+    u64 epoll_error;
+    u64 epool_recv;
+} epoll_stat_info_t;
 #endif

@@ -1,11 +1,24 @@
 #include "common.h"
+#include "cli.h"
 static int epfd = -1;
 static int tuntap_fd = -1;
 static int udp_sock_fd = -1;
 static int rx_task_is_running = 1;
+epoll_stat_info_t epoll_stat_info = {0};
 #define UDP_PORT 29870
-#define SERVER_IP "192.168.42.132"
-// #define SERVER_IP "172.16.123.134"
+#define SERVER_IP "172.16.123.137"
+#define TAP_NAME "ttap"
+
+int log_level = 0;
+static char server_addr[20] = {0};
+static char tap_name[16] = {0};
+
+static struct option long_options[] = {
+    {"help", no_argument, 0, 'h'},
+    {"server", required_argument, 0, 's'},
+    {"tap", required_argument, 0, 't'},
+    {NULL, 0, 0, 0}
+};
 
 static void usr1_handler(int signo)
 {
@@ -28,6 +41,17 @@ static void runing(void)
     while (rx_task_is_running)
     {
         nfds = epoll_wait(epfd, evs, ev_size, 2000);
+        if (nfds == 0) {
+            epoll_stat_info.epoll_timeout ++;
+            continue;
+        }
+        else if (unlikely(nfds < 0)) {
+            epoll_stat_info.epoll_error ++;
+            continue;
+        }
+        else {
+            epoll_stat_info.epool_recv += nfds;
+        }
         for (i = 0; i < nfds; i++)
         {
             if (evs[i].events & EPOLLIN)
@@ -72,20 +96,51 @@ static void runing(void)
                 LOG_INFO("recv unknown event: %d", evs[i].events);
             }
         }
-    }
+    }/* code */
     LOG_INFO("run exit!");
+}
+
+void usage(void)
+{
+    exit(0);
 }
 
 int main(int argv, char **argc)
 {
     signal(SIGUSR1, usr1_handler);
-    tuntap_fd = create_tuntap("ttap");
+    int c;
+    int option_index = 0;
+    while ((c = getopt_long(argv, argc, "hs:t:", long_options, &option_index)) != -1) {
+        switch (c)
+        {
+        case 'h':
+            usage();
+            break;
+        case 's':
+            strcpy(server_addr, optarg);
+            break;
+        case 't':
+            strcpy(tap_name, optarg);
+            break;
+        default:
+            break;
+        }
+    }
+    if (strlen(server_addr) == 0) {
+        strcpy(server_addr, SERVER_IP);
+    }
+    if (strlen(tap_name) == 0) {
+        strcpy(tap_name, TAP_NAME);
+    }
+
+    cli_main();
+    tuntap_fd = create_tuntap(tap_name);
     if (tuntap_fd == -1)
     {
         LOG_ERR("create_tuntap failed!");
         return -1;
     }
-    udp_sock_fd = create_udp_client(UDP_PORT, SERVER_IP);
+    udp_sock_fd = create_udp_client(UDP_PORT, server_addr);
     if (udp_sock_fd == -1)
     {
         LOG_ERR("create_udp_client failed!");

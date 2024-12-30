@@ -39,16 +39,16 @@ ether_addr_to_str(unsigned char addr[ETH_ALEN], char *buf, int len)
 
 #define LOG_ERR(format, ...) printf("[Error][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 #define LOG_DBG(format, ...)            \
-    if (log_level == enLOG_LEVEL_DEBUG) \
+    if (log_level >= enLOG_LEVEL_DEBUG) \
     printf("[Debug][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 #define LOG_INFO(format, ...)          \
-    if (log_level == enLOG_LEVEL_INFO) \
+    if (log_level >= enLOG_LEVEL_INFO) \
     printf("[INFO][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 
 #define LOG_ETHER_ADDR(peer_addr, eth, format, ...)                                                \
     do                                                                                             \
     {                                                                                              \
-        if (log_level == enLOG_LEVEL_DEBUG)                                                        \
+        if (log_level >= enLOG_LEVEL_DEBUG)                                                        \
         {                                                                                          \
             char eth_addr[20];                                                                     \
             printf("[INFO][%s:%d][%s:%u][mac:%s]" format "\n", __func__, __LINE__,                 \
@@ -59,7 +59,7 @@ ether_addr_to_str(unsigned char addr[ETH_ALEN], char *buf, int len)
 #define LOG_IP_ETHER_ADDR(peer_addr, ether, format, ...)                                                           \
     do                                                                                                             \
     {                                                                                                              \
-        if (log_level == enLOG_LEVEL_DEBUG)                                                                        \
+        if (log_level >= enLOG_LEVEL_DEBUG)                                                                        \
         {                                                                                                          \
             char src_eth_addr[20], dest_eth_addr[20];                                                              \
             printf("[INFO][%s:%d][%s:%u][src mac:%s, dst mac: %s, proto: 0x%04x]" format "\n", __func__, __LINE__, \
