@@ -16,7 +16,7 @@
 #define LOG_ERR(format, ...) printf("[Error][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 #define LOG_DBG(format, ...) printf("[Debug][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
 #define LOG_INFO(format, ...) printf("[INFO][%s:%d]" format "\n", __func__, __LINE__, ##__VA_ARGS__)
-#if 0
+#if 1
 #define LOG_ETHER_ADDR(ether, format, ...)                                                              \
     do                                                                                                  \
     {                                                                                                   \

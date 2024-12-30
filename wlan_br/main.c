@@ -4,7 +4,7 @@ static int tuntap_fd = -1;
 static int udp_sock_fd = -1;
 static int rx_task_is_running = 1;
 #define UDP_PORT 29870
-#define SERVER_IP "172.16.121.125"
+#define SERVER_IP "192.168.42.132"
 // #define SERVER_IP "172.16.123.134"
 
 static void usr1_handler(int signo)

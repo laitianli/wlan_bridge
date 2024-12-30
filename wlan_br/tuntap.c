@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <sys/uio.h>
 #include <time.h>
 #include "common.h"
 
@@ -141,7 +142,7 @@ int setup_tuntap_device(const char *nic_name, int port)
 
 	if (!(ifr.ifr_flags & IFF_UP))
 	{
-		ifr.ifr_flags |= IFF_UP | IFF_NOARP;
+		ifr.ifr_flags |= IFF_UP /*| IFF_NOARP*/;
 		if (ioctl(gen_fd, SIOCSIFFLAGS, &ifr) < 0)
 		{
 			LOG_ERR("Failed to set interface flags: %s",
