@@ -1,6 +1,6 @@
 #ifndef __WLAN_FDB_H__
 #define __WLAN_FDB_H__
-#include "uthash/include/uthash.h"
+#include "include/uthash.h"
 #include "common.h"
 
 typedef struct _wlan_fdb_entry_

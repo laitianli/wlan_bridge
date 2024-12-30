@@ -18,15 +18,6 @@
 
 static int tun_fd = -1;
 static int rx_task_is_running = 1;
-static int exit_threads = 0;
-#if 0
-static void usr1_handler(int signo)
-{
-    exit_threads = 1;
-	rx_task_is_running = 0;
-}
-#endif
-
 static int tap_alloc(char *dev, int flags)
 {
 

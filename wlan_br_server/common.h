@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <linux/if_ether.h>
-#include "uthash/include/uthash.h"
+#include "include/uthash.h"
 
 typedef unsigned char u8;
 typedef unsigned short u16;

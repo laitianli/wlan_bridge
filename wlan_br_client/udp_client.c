@@ -13,8 +13,8 @@ static int udp_sock = -1;
 static struct sockaddr_in serv_adr;
 int create_udp_client(unsigned short port, const char *server_ip)
 {
-	int str_len;
-	socklen_t adr_sz;
+	//int str_len;
+	//socklen_t adr_sz;
 	udp_sock = socket(PF_INET, SOCK_DGRAM, 0);
 	if (udp_sock == -1)
 	{

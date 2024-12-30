@@ -1,6 +1,6 @@
 #ifndef __STATISTICS_H__
 #define __STATISTICS_H__
-#include "uthash/include/uthash.h"
+#include "include/uthash.h"
 #include "common.h"
 
 #define NS_PER_SEC 1E9
